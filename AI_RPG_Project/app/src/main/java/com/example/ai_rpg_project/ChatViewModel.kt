@@ -13,11 +13,20 @@ import com.google.ai.client.generativeai.type.content
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
+import com.google.firebase.Firebase
+import com.google.firebase.Timestamp
+import com.google.firebase.firestore.firestore
+import java.util.UUID
+
+
+
 
 class ChatViewModel : ViewModel() {
 
 
 
+    private val _isLoadedGame = mutableStateOf(false)
+    val isLoadedGame: State<Boolean> = _isLoadedGame
 
     val messageList by lazy {
         mutableStateListOf<MessageModel>()
@@ -48,6 +57,80 @@ class ChatViewModel : ViewModel() {
     fun updateHpFromMessage(message: String) {
         _hp.value = extractHpFromMessage(message)
     }
+
+    fun saveGame(
+        playerName: String,
+        theme: String,
+        characterName: String,
+        strength: Int,
+        defense: Int,
+        speed: Int,
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        val gameSave = GameSave(
+            id = UUID.randomUUID().toString(),
+            playerName = playerName,
+            selectedTheme = theme,
+            characterName = characterName,
+            strength = strength,
+            defense = defense,
+            speed = speed,
+            hp = hp.value,
+            messages = messageList, // Save the entire message list
+            timestamp = Timestamp.now()
+        )
+
+        FirebaseManager.saveGame(
+            gameSave,
+            onSuccess = onSuccess,
+            onFailure = { error -> onError(error) }
+        )
+    }
+
+    fun loadGame(
+        gameId: String,
+        onSuccess: () -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        FirebaseManager.loadGame(
+            gameId,
+            onSuccess = { gameSave ->
+                // Clear existing state
+                messageList.clear()
+                println("Cleared messages. Adding ${gameSave.messages.size} messages.")
+                // Restore messages from saved game
+                messageList.addAll(gameSave.messages)
+
+                // Restore HP
+                _hp.value = gameSave.hp
+
+                // Set loaded game flag
+                _isLoadedGame.value = true
+
+                // Debug prints
+                println("Loaded game messages: ${messageList.size}")
+                println("Loaded game HP: ${_hp.value}")
+
+                onSuccess()
+            },
+            onFailure = { exception ->
+                println("Game load failure: ${exception.message}")
+                onError(exception)
+            }
+        )
+    }
+
+    // Add a function to reset the loaded game flag when starting a new game
+    fun resetLoadedGameFlag() {
+        _isLoadedGame.value = false
+    }
+
+
+
+    // Load game from Firestore
+
+
 
 
     fun sendMessage(question: String) {

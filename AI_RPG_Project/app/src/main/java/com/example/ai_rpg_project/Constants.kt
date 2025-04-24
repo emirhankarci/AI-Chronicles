@@ -2,5 +2,5 @@ package com.example.ai_rpg_project
 
 object Constants {
 
-    val apiKey = "your_api_key"
+    val apiKey = "AIzaSyDgtXAutxjri1GT6vAy50L2RUWCelMnR7E"
 }

@@ -1,5 +1,6 @@
 package com.example.ai_rpg_project
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +23,8 @@ import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.Send
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
@@ -37,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -44,18 +48,63 @@ import androidx.compose.ui.unit.sp
 import com.example.ai_rpg_project.ui.theme.Purple80
 
 
+
 @Composable
 fun ChatPage(
     modifier: Modifier = Modifier,
     viewModel: ChatViewModel,
-    name: String,
-    setting: String,
-    charName: String,
-    strength: Int,
-    defense: Int,
-    speed: Int
+    name: String = "",
+    setting: String = "",
+    charName: String = "",
+    strength: Int = 0,
+    defense: Int = 0,
+    speed: Int = 0,
+    specialItem: String = ""
 ) {
     val hp by viewModel.hp
+    val context = LocalContext.current
+    var showSaveDialog by remember { mutableStateOf(false) }
+
+    // Check if this is a fresh game (messageList is empty)
+    val isFreshGame = viewModel.messageList.isEmpty()
+
+    // Add save game dialog
+    if (showSaveDialog) {
+        AlertDialog(
+            onDismissRequest = { showSaveDialog = false },
+            title = { Text("Save Game") },
+            text = { Text("Do you want to save your current game progress?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.saveGame(
+                            playerName = name,
+                            theme = setting,
+                            characterName = charName,
+                            strength = strength,
+                            defense = defense,
+                            speed = speed,
+                            onSuccess = {
+                                Toast.makeText(context, "Game saved successfully!", Toast.LENGTH_SHORT).show()
+                                showSaveDialog = false
+                            },
+                            onError = { e ->
+                                Toast.makeText(context, "Failed to save: ${e.message}", Toast.LENGTH_SHORT).show()
+                                showSaveDialog = false
+                            }
+                        )
+                    }
+                ) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showSaveDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 
     Box(
         modifier = Modifier
@@ -71,19 +120,36 @@ fun ChatPage(
                 messageList = viewModel.messageList
             )
             MessageInput(
-                onMessageSend = {
-                    viewModel.sendMessage(it)
-                }
+                onMessageSend = { viewModel.sendMessage(it) },
+                onSaveRequest = { showSaveDialog = true }
             )
         }
     }
 
+    // Only send initial message for a fresh game
     LaunchedEffect(Unit) {
-        val initialMessage = "Welcome! Your name is $name. You have entered the $setting setting and you are a $charName. You have $strength strength, $defense defense, and $speed speed."
-        viewModel.sendMessage(initialMessage)
+        if (isFreshGame) {
+            val isFromCreateStory = specialItem.isNotBlank()
+
+            if (isFromCreateStory) {
+                // Custom story path
+                val initialMessage = "Welcome to your custom adventure! " +
+                        "Your story is set in: $setting. " +
+                        "You are playing as: $name. " +
+                        "Your adventure includes side characters: $charName. " +
+                        "You possess a special item: $specialItem. " +
+                        "Your stats are: strength: $strength, defense: $defense, speed: $speed. Let's begin your tale!"
+                viewModel.sendMessage(initialMessage)
+            } else {
+                // Character selection path (original path)
+                val initialMessage = "Welcome! Your name is $name. " +
+                        "You have entered the $setting setting and you are a $charName. " +
+                        "You have $strength strength, $defense defense, and $speed speed."
+                viewModel.sendMessage(initialMessage)
+            }
+        }
     }
 }
-
 
 
 
@@ -174,21 +240,21 @@ fun MessageRow(messageModel: MessageModel) {
 
 
 @Composable
-fun MessageInput(onMessageSend: (String) -> Unit) {
+fun MessageInput(onMessageSend: (String) -> Unit, onSaveRequest: () -> Unit) {
     var message by remember { mutableStateOf("") }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFF44318D).copy(alpha = 0.3f)) // Background color
+            .background(Color(0xFF44318D).copy(alpha = 0.3f))
             .padding(horizontal = 8.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Plus button
-        IconButton(onClick = { /* Add action */ }) {
+        // Change this to be a Save button
+        IconButton(onClick = onSaveRequest) {
             Icon(
-                imageVector = Icons.Default.Add,
-                contentDescription = "Add",
+                imageVector = Icons.Default.Add, // Change to Save icon
+                contentDescription = "Save Game",
                 tint = Color.White
             )
         }

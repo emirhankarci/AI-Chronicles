@@ -150,7 +150,7 @@ private fun GameMenu(
         ) {
             GameMenuButton("Start", Icons.Default.PlayArrow, purpleGradient, navController, "NameSelecttScreen")
             GameMenuButton("Continue", Icons.Default.PlayArrow, grayGradient, navController, "NameSelecttScreen")
-            GameMenuButton("Load", Icons.Default.Info, grayGradient, navController, "NameSelecttScreen")
+            GameMenuButton("Load", Icons.Default.Info, grayGradient, navController, "SavedGamesScreen")
             GameMenuButton("Settings", Icons.Default.Settings, grayGradient, navController, "NameSelecttScreen")
         }
     }
