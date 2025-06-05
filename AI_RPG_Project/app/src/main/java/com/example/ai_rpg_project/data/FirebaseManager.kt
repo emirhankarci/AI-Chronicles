@@ -10,6 +10,79 @@ import kotlin.collections.get
 object FirebaseManager {
     private val db = Firebase.firestore
     private const val COLLECTION_SAVES = "session"
+    private const val CURRENT_SESSION_DOC = "current_session"
+
+
+    fun saveCurrentGameSession(gameSave: GameSave, onComplete: () -> Unit) {
+        val saveMap = hashMapOf(
+            "id" to gameSave.id,
+            "playerName" to gameSave.playerName,
+            "selectedTheme" to gameSave.selectedTheme,
+            "characterName" to gameSave.characterName,
+            "strength" to gameSave.strength,
+            "defense" to gameSave.defense,
+            "speed" to gameSave.speed,
+            "hp" to gameSave.hp,
+            "messages" to gameSave.messages.map { message ->
+                hashMapOf(
+                    "message" to message.message,
+                    "role" to message.role
+                )
+            },
+            "timestamp" to gameSave.timestamp
+        )
+
+        db.collection(COLLECTION_SAVES)
+            .document(CURRENT_SESSION_DOC)
+            .set(saveMap)
+            .addOnCompleteListener { onComplete() }
+    }
+
+    fun loadCurrentGameSession(onSuccess: (GameSave?) -> Unit, onFailure: (Exception) -> Unit) {
+        db.collection(COLLECTION_SAVES)
+            .document(CURRENT_SESSION_DOC)
+            .get()
+            .addOnSuccessListener { document ->
+                if (document != null && document.exists()) {
+                    try {
+                        val messagesData = document.get("messages") as? List<*> ?: emptyList<Any>()
+                        val messageList = messagesData.mapNotNull { item ->
+                            val messageMap = item as? Map<*, *> ?: return@mapNotNull null
+                            val message = messageMap["message"] as? String ?: ""
+                            val role = messageMap["role"] as? String ?: ""
+                            MessageModel(message, role)
+                        }
+
+                        val gameSave = GameSave(
+                            id = document.getString("id") ?: "",
+                            playerName = document.getString("playerName") ?: "",
+                            selectedTheme = document.getString("selectedTheme") ?: "",
+                            characterName = document.getString("characterName") ?: "",
+                            strength = document.getLong("strength")?.toInt() ?: 0,
+                            defense = document.getLong("defense")?.toInt() ?: 0,
+                            speed = document.getLong("speed")?.toInt() ?: 0,
+                            hp = document.getLong("hp")?.toInt() ?: 100,
+                            messages = messageList,
+                            timestamp = document.getTimestamp("timestamp") ?: Timestamp.now()
+                        )
+
+                        onSuccess(gameSave)
+                    } catch (e: Exception) {
+                        onFailure(e)
+                    }
+                } else {
+                    onSuccess(null)
+                }
+            }
+            .addOnFailureListener { onFailure(it) }
+    }
+
+    fun deleteCurrentGameSession(onComplete: () -> Unit) {
+        db.collection(COLLECTION_SAVES)
+            .document(CURRENT_SESSION_DOC)
+            .delete()
+            .addOnCompleteListener { onComplete() }
+    }
 
     fun saveGame(gameSave: GameSave, onSuccess: () -> Unit, onFailure: (Exception) -> Unit) {
         val saveMap = hashMapOf(
@@ -44,7 +117,7 @@ object FirebaseManager {
             .addOnSuccessListener { document ->
                 if (document != null && document.exists()) {
                     try {
-                        // Extract message list
+
                         val messagesData = document.get("messages") as? List<*> ?: emptyList<Any>()
                         val messageList = messagesData.mapNotNull { item ->
                             val messageMap = item as? Map<*, *> ?: return@mapNotNull null
@@ -64,7 +137,7 @@ object FirebaseManager {
                             defense = document.getLong("defense")?.toInt() ?: 0,
                             speed = document.getLong("speed")?.toInt() ?: 0,
                             hp = document.getLong("hp")?.toInt() ?: 100,
-                            messages = messageList, // Make sure this is populated
+                            messages = messageList,
                             timestamp = document.getTimestamp("timestamp")
                                 ?: Timestamp.Companion.now()
                         )
@@ -99,7 +172,7 @@ object FirebaseManager {
                         val speed = document.getLong("speed")?.toInt() ?: 0
                         val timestamp = document.getTimestamp("timestamp") ?: Timestamp.Companion.now()
 
-                        // Extract message list - add this code
+
                         val messagesData = document.get("messages") as? List<*> ?: emptyList<Any>()
                         val messageList = messagesData.mapNotNull { item ->
                             val messageMap = item as? Map<*, *> ?: return@mapNotNull null
@@ -119,11 +192,11 @@ object FirebaseManager {
                                 defense = defense,
                                 speed = speed,
                                 timestamp = timestamp,
-                                messages = messageList // Add this field
+                                messages = messageList
                             )
                         )
                     } catch (e: Exception) {
-                        // Skip this document if there's an error
+
                         continue
                     }
                 }

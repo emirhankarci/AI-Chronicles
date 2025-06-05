@@ -31,6 +31,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
 import com.example.ai_rpg_project.Screens.ChatPageScreen.ChatViewModel
+import com.example.ai_rpg_project.Screens.NavigationScreen.Screen
 import com.example.ai_rpg_project.data.FirebaseManager
 import com.example.ai_rpg_project.data.GameSave
 
@@ -104,14 +105,23 @@ fun SavedGamesScreen(navController: NavHostController, viewModel: ChatViewModel)
                 modifier = Modifier.weight(1f)
             ) {
                 items(savedGames) { game ->
+                    // SavedGamesScreen.kt içindeki SavedGameItem'daki onClick fonksiyonunu güncelle:
+
                     SavedGameItem(
                         game = game,
                         onClick = {
+                            // Önce oyunu sıfırla
+                            viewModel.resetGame()
+
+                            // Sonra kayıtlı oyunu yükle
                             viewModel.loadGame(
                                 gameId = game.id,
                                 onSuccess = {
                                     Toast.makeText(context, "Game loaded successfully!", Toast.LENGTH_SHORT).show()
-                                    navController.navigate("ChatPage/${game.playerName}/${game.selectedTheme}/${game.characterName}/${game.strength}/${game.defense}/${game.speed}")
+                                    // Parametresiz ChatPage'e git
+                                    navController.navigate(Screen.Chat.route) {
+                                        popUpTo("SavedGamesScreen") { inclusive = true }
+                                    }
                                 },
                                 onError = { e ->
                                     Toast.makeText(context, "Failed to load: ${e.message}", Toast.LENGTH_SHORT).show()

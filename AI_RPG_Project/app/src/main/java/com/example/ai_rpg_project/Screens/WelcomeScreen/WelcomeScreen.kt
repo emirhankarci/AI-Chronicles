@@ -1,6 +1,10 @@
 package com.example.ai_rpg_project.Screens.WelcomeScreen
 
 import androidx.compose.foundation.Image
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -37,17 +41,16 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
 import com.example.ai_rpg_project.R
-
+import com.example.ai_rpg_project.Screens.ChatPageScreen.ChatViewModel
 
 @Composable
 fun WelcomeScreen(
-    navController: NavHostController
+    navController: NavHostController,
+    chatViewModel: ChatViewModel
 ) {
     Box(
         modifier = Modifier
@@ -67,12 +70,11 @@ fun WelcomeScreen(
         ) {
             Spacer(modifier = Modifier.height(0.dp))
 
-            WelcomText()
+            WelcomeText()
 
             Spacer(modifier = Modifier.height(0.dp))
 
-            GameMenu(navController)
-
+            GameMenu(navController, chatViewModel)
 
             Text(
                 text = "v1.0.0",
@@ -83,10 +85,8 @@ fun WelcomeScreen(
         }
     }
 }
-
-
 @Composable
-private fun WelcomText() {
+private fun WelcomeText() {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Image(
             painter = painterResource(id = R.drawable.gamepad),
@@ -119,13 +119,24 @@ private fun WelcomText() {
 
     }
 }
-
 @Composable
 private fun GameMenu(
-    navController: NavHostController
+    navController: NavHostController,
+    chatViewModel: ChatViewModel
 ) {
     val purpleGradient = listOf(Color(0xFF8E2DE2), Color(0xFF4A00E0))
     val grayGradient = listOf(Color(0xFF2C2C2C), Color(0xFF8E8E8E))
+    val disabledGradient = listOf(Color(0xFF1A1A1A), Color(0xFF3A3A3A))
+
+
+    val isSessionLoaded by chatViewModel.isSessionLoaded.observeAsState(false)
+
+
+    val hasContinuableGame by remember {
+        derivedStateOf {
+            isSessionLoaded && chatViewModel.hasContinuableGame()
+        }
+    }
 
     Card(
         modifier = Modifier
@@ -141,63 +152,87 @@ private fun GameMenu(
             verticalArrangement = Arrangement.spacedBy(12.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+
             GameMenuButton(
-                "Start",
-                Icons.Default.PlayArrow,
-                purpleGradient,
-                navController,
-                "NameSelecttScreen"
+                text = "Start New Game",
+                icon = Icons.Default.PlayArrow,
+                gradientColors = purpleGradient,
+                isEnabled = true,
+                onClick = {
+                    // Oyunu sıfırla ve yeni oyun başlat
+                    chatViewModel.resetGame()
+                    navController.navigate("NameSelecttScreen")
+                }
             )
+
+
             GameMenuButton(
-                "Continue",
-                Icons.Default.PlayArrow,
-                grayGradient,
-                navController,
-                "NameSelecttScreen"
+                text = "Continue",
+                icon = Icons.Default.PlayArrow,
+                gradientColors = if (hasContinuableGame) grayGradient else disabledGradient,
+                isEnabled = hasContinuableGame,
+                onClick = {
+                    if (hasContinuableGame) {
+
+                        navController.navigate("ChatPage")
+                    }
+                }
             )
+
+
             GameMenuButton(
-                "Load",
-                Icons.Default.Info,
-                grayGradient,
-                navController,
-                "SavedGamesScreen"
+                text = "Load Game",
+                icon = Icons.Default.Info,
+                gradientColors = grayGradient,
+                isEnabled = true,
+                onClick = {
+                    navController.navigate("SavedGamesScreen")
+                }
             )
+
+
             GameMenuButton(
-                "Settings",
-                Icons.Default.Settings,
-                grayGradient,
-                navController,
-                "NameSelecttScreen"
+                text = "Settings",
+                icon = Icons.Default.Settings,
+                gradientColors = grayGradient,
+                isEnabled = true,
+                onClick = {
+                    navController.navigate("NameSelecttScreen")
+                }
             )
         }
     }
 }
-
 
 @Composable
 fun GameMenuButton(
     text: String,
     icon: ImageVector,
     gradientColors: List<Color>,
-    navController: NavHostController,
-    destination: String
+    isEnabled: Boolean,
+    onClick: () -> Unit
 ) {
+    val buttonAlpha = if (isEnabled) 1f else 0.5f
+
     Button(
-        onClick = { navController.navigate(destination) },
+        onClick = { if (isEnabled) onClick() },
         modifier = Modifier
             .fillMaxWidth()
             .height(50.dp),
         colors = ButtonDefaults.buttonColors(containerColor = Color.Transparent),
         shape = RoundedCornerShape(12.dp),
-        contentPadding = PaddingValues()
+        contentPadding = PaddingValues(),
+        enabled = isEnabled
     ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     brush = Brush.horizontalGradient(gradientColors),
-                    shape = RoundedCornerShape(12.dp)
-                ), contentAlignment = Alignment.Center
+                    shape = RoundedCornerShape(12.dp),
+                    alpha = buttonAlpha
+                ),
+            contentAlignment = Alignment.Center
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -205,19 +240,17 @@ fun GameMenuButton(
                 modifier = Modifier.padding(horizontal = 16.dp)
             ) {
                 Icon(
-                    imageVector = icon, contentDescription = null, tint = Color.White
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = Color.White.copy(alpha = buttonAlpha)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text, color = Color.White, fontWeight = FontWeight.Bold)
+                Text(
+                    text,
+                    color = Color.White.copy(alpha = buttonAlpha),
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
     }
-}
-
-
-@Preview(showBackground = true)
-@Composable
-fun WelcomeScreenPreview() {
-    val fakeNavController = rememberNavController()
-    WelcomeScreen(navController = fakeNavController)
 }

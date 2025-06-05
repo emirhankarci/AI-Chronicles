@@ -1,6 +1,7 @@
 package com.example.ai_rpg_project.Screens.ChatPageScreen
 
 import android.widget.Toast
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,7 +10,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -22,38 +22,17 @@ import com.example.ai_rpg_project.Utils.TopBar
 
 @Composable
 fun ChatPage(
-    modifier: Modifier = Modifier,
     viewModel: ChatViewModel = hiltViewModel(),
-
-    name: String = "",
-    setting: String = "",
-    charName: String = "",
-    strength: Int = 0,
-    defense: Int = 0,
-    speed: Int = 0,
-    specialItem: String = ""
+    onNavigateToMainMenu: () -> Unit,
 ) {
     val hp by viewModel.hp
     val context = LocalContext.current
     val showSaveDialog by viewModel.showSaveDialog
-    val isLoadedGame by viewModel.isLoadedGame
 
 
+    BackHandler(enabled = true) { }
 
-    LaunchedEffect(key1 = isLoadedGame) {
 
-        if (isLoadedGame) {
-            val savedChatHistory = viewModel.getChatHistoryAsString()
-            if (savedChatHistory.isNotBlank()) {
-                val continuePrompt = "Continue from here\n$savedChatHistory"
-                viewModel.sendMessage(continuePrompt)
-            }
-            viewModel.resetLoadedGameFlag()
-        } else if (viewModel.messageList.isEmpty()) {
-            viewModel.startNewGame(name, setting, charName, strength, defense, speed, specialItem)
-        }
-
-    }
 
 
     if (showSaveDialog) {
@@ -94,9 +73,9 @@ fun ChatPage(
             .background(Color(0xFF2A1B3D))
     ) {
         Column(
-            modifier = modifier
+            modifier = Modifier
         ) {
-            TopBar(hp = hp)
+            TopBar(hp = hp, onMainMenuClicked = onNavigateToMainMenu)
             MessageList(
                 modifier = Modifier.weight(1f), messageList = viewModel.messageList
             )

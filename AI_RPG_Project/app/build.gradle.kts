@@ -71,29 +71,43 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
-    implementation("com.squareup.okhttp3:okhttp:4.9.3")  // OkHttp HTTP client
+    implementation("com.squareup.okhttp3:okhttp:4.9.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.5.2")
     implementation("com.squareup.retrofit2:retrofit:2.9.0")
     implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("com.google.ai.client.generativeai:generativeai:0.7.0")
-    implementation("androidx.compose.ui:ui:<version>") // Use the latest version
+    implementation("androidx.compose.ui:ui:<version>")
     implementation("androidx.compose.material:material:<version>")
     implementation("androidx.activity:activity-compose:<version>")
     implementation("androidx.core:core-splashscreen:1.0.1")
-    implementation("androidx.room:room-runtime:2.6.1") // Latest version
+    implementation("androidx.room:room-runtime:2.6.1")
     kapt("androidx.room:room-compiler:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
     implementation(platform("com.google.firebase:firebase-bom:33.11.0"))
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-auth-ktx")
 
-    // Hilt
+
     implementation("com.google.dagger:hilt-android:2.56.1")
     kapt("com.google.dagger:hilt-compiler:2.56.1")
 
     implementation("androidx.hilt:hilt-navigation-compose:1.1.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0") // optional
-    implementation("androidx.navigation:navigation-compose:2.7.7") // required for nav
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+    implementation("androidx.navigation:navigation-compose:2.7.7")
+
+    val lifecycle_version = "2.7.0"
+    val compose_version = "1.6.5"
+
+
+    implementation("androidx.compose.runtime:runtime-livedata:$compose_version")
+
+
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycle_version")
+
+
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:$lifecycle_version")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:$lifecycle_version")
+    implementation("androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_version")
 
 
 

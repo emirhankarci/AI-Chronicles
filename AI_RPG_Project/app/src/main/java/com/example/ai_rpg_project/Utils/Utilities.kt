@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.outlined.Send
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -45,60 +46,82 @@ import com.example.ai_rpg_project.data.MessageModel
 import com.example.ai_rpg_project.ui.theme.Purple80
 
 @Composable
-fun TopBar(hp: Int) {
+fun TopBar(hp: Int, onMainMenuClicked: () -> Unit) {
     Column(
-        modifier = Modifier.Companion
+        modifier = Modifier
             .fillMaxWidth()
             .background(Color(0xFF44318D).copy(alpha = 0.3f))
             .padding(16.dp)
     ) {
         Row(
-            verticalAlignment = Alignment.Companion.CenterVertically,
-            modifier = Modifier.Companion.fillMaxWidth()
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
         ) {
             Image(
                 painter = painterResource(id = R.drawable.skulllll),
                 contentDescription = "Avatar",
-                modifier = Modifier.Companion
+                modifier = Modifier
                     .size(60.dp)
                     .clip(CircleShape)
             )
-            Spacer(modifier = Modifier.Companion.width(12.dp))
-            Column(modifier = Modifier.Companion.weight(1f)) {
-                Row(verticalAlignment = Alignment.Companion.CenterVertically) {
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         "Shadow Mage",
-                        color = Color.Companion.White,
+                        color = Color.White,
                         fontSize = 18.sp,
-                        fontWeight = FontWeight.Companion.Bold
+                        fontWeight = FontWeight.Bold
                     )
-                    Spacer(modifier = Modifier.Companion.width(6.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
                     Box(
-                        modifier = Modifier.Companion
+                        modifier = Modifier
                             .background(Color(0xFFD97706), CircleShape)
                             .padding(horizontal = 6.dp, vertical = 2.dp)
                     ) {
                         Text(
                             "15",
-                            color = Color.Companion.White,
+                            color = Color.White,
                             fontSize = 12.sp,
-                            fontWeight = FontWeight.Companion.Bold
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
-                Spacer(modifier = Modifier.Companion.height(4.dp))
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(
                     "❤ $hp",
-                    color = Color.Companion.White,
+                    color = Color.White,
                     fontSize = 14.sp,
-                    fontWeight = FontWeight.Companion.Bold
+                    fontWeight = FontWeight.Bold
                 )
             }
+
+            // Ana Menü butonu ekle
+            IconButton(
+                onClick = onMainMenuClicked,
+                modifier = Modifier
+                    .background(
+                        Color(0xFF8E2DE2).copy(alpha = 0.8f),
+                        CircleShape
+                    )
+                    .size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Home,
+                    contentDescription = "Main Menu",
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Dropdown menü butonu (mevcut)
             IconButton(onClick = { /* Menu action */ }) {
                 Icon(
                     painter = painterResource(id = R.drawable.baseline_arrow_drop_down_24),
                     contentDescription = "Menu",
-                    tint = Color.Companion.White
+                    tint = Color.White
                 )
             }
         }

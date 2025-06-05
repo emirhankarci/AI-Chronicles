@@ -5,6 +5,8 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.ai_rpg_project.Utils.Constants
@@ -20,7 +22,6 @@ import java.util.UUID
 
 class ChatViewModel : ViewModel() {
 
-
     private val _isLoadedGame = mutableStateOf(false)
     val isLoadedGame: State<Boolean> = _isLoadedGame
 
@@ -29,10 +30,12 @@ class ChatViewModel : ViewModel() {
     private val _hp = mutableIntStateOf(100)
     val hp: State<Int> = _hp
 
-
     private val _showSaveDialog = mutableStateOf(false)
     val showSaveDialog: State<Boolean> = _showSaveDialog
 
+
+    private val _isSessionLoaded = MutableLiveData(false)
+    val isSessionLoaded: LiveData<Boolean> get() = _isSessionLoaded
 
     private var playerName: String = ""
     private var theme: String = ""
@@ -42,11 +45,79 @@ class ChatViewModel : ViewModel() {
     private var speed: Int = 0
     private var specialItem: String = ""
 
-
     private val generativeModel = GenerativeModel(
         modelName = "gemini-2.0-flash", apiKey = Constants.apiKey
     )
 
+
+    init {
+        loadCurrentGameSessionOnInit()
+    }
+
+    private fun loadCurrentGameSessionOnInit() {
+        FirebaseManager.loadCurrentGameSession(
+            onSuccess = { gameSave ->
+                if (gameSave != null) {
+
+                    messageList.clear()
+                    messageList.addAll(gameSave.messages)
+                    _hp.value = gameSave.hp
+
+                    playerName = gameSave.playerName
+                    theme = gameSave.selectedTheme
+                    characterName = gameSave.characterName
+                    strength = gameSave.strength
+                    defense = gameSave.defense
+                    speed = gameSave.speed
+
+                    _isSessionLoaded.value = true
+                    Log.d("ChatViewModel", "Current session auto-loaded on init: ${messageList.size} messages")
+                } else {
+                    _isSessionLoaded.value = false
+                    Log.d("ChatViewModel", "No current session found on init")
+                }
+            },
+            onFailure = {
+                _isSessionLoaded.value = false
+                Log.d("ChatViewModel", "Error loading current session on init")
+            }
+        )
+    }
+
+    fun hasActiveGame(): Boolean {
+        return messageList.isNotEmpty() && !_isLoadedGame.value
+    }
+
+    fun hasContinuableGame(): Boolean {
+        return messageList.isNotEmpty()
+    }
+
+    fun resetGame() {
+        messageList.clear()
+        _hp.value = 100
+        playerName = ""
+        theme = ""
+        characterName = ""
+        strength = 0
+        defense = 0
+        speed = 0
+        specialItem = ""
+        _isLoadedGame.value = false
+        _showSaveDialog.value = false
+        _isSessionLoaded.value = false
+
+
+        FirebaseManager.deleteCurrentGameSession {
+            Log.d("ChatViewModel", "Current session cleared")
+        }
+    }
+
+    fun onReturnToMainMenu() {
+        _isLoadedGame.value = false
+
+    }
+
+    private val CURRENT_GAME_KEY = "current_game_session"
 
     private fun extractHpFromMessage(message: String): Int {
         val regex =
@@ -74,17 +145,14 @@ class ChatViewModel : ViewModel() {
         }
     }
 
-
     private fun updateHpFromMessage(message: String) {
         _hp.value = extractHpFromMessage(message)
     }
-
 
     fun getChatHistoryAsString(): String {
         return messageList.filter { it.message != "Typing..." }
             .joinToString("\n") { "${it.role.capitalize()}: ${it.message}" }
     }
-
 
     fun showSaveGameDialog() {
         _showSaveDialog.value = true
@@ -94,9 +162,53 @@ class ChatViewModel : ViewModel() {
         _showSaveDialog.value = false
     }
 
+    fun loadCurrentGameSession() {
+        FirebaseManager.loadCurrentGameSession(
+            onSuccess = { gameSave ->
+                if (gameSave != null) {
+
+                    messageList.clear()
+                    messageList.addAll(gameSave.messages)
+                    _hp.value = gameSave.hp
+
+                    playerName = gameSave.playerName
+                    theme = gameSave.selectedTheme
+                    characterName = gameSave.characterName
+                    strength = gameSave.strength
+                    defense = gameSave.defense
+                    speed = gameSave.speed
+
+                    Log.d("ChatViewModel", "Current session loaded: ${messageList.size} messages")
+                }
+            },
+            onFailure = {
+                Log.d("ChatViewModel", "No current session found or error loading")
+            }
+        )
+    }
+
+    private fun saveCurrentGameSession() {
+        if (messageList.isNotEmpty()) {
+            val currentSession = GameSave(
+                id = CURRENT_GAME_KEY,
+                playerName = playerName,
+                selectedTheme = theme,
+                characterName = characterName,
+                strength = strength,
+                defense = defense,
+                speed = speed,
+                hp = hp.value,
+                messages = messageList.toList(),
+                timestamp = Timestamp.now()
+            )
+
+            FirebaseManager.saveCurrentGameSession(currentSession) {
+                Log.d("ChatViewModel", "Current session auto-saved")
+            }
+        }
+    }
 
     fun saveGame(onSuccess: () -> Unit, onError: (Exception) -> Unit) {
-
         val gameSave = GameSave(
             id = UUID.randomUUID().toString(),
             playerName = playerName,
@@ -123,12 +235,10 @@ class ChatViewModel : ViewModel() {
 
     fun loadGame(gameId: String, onSuccess: () -> Unit, onError: (Exception) -> Unit) {
         FirebaseManager.loadGame(gameId, onSuccess = { gameSave ->
-
             messageList.clear()
             messageList.addAll(gameSave.messages)
             _hp.value = gameSave.hp
             _isLoadedGame.value = true
-
 
             playerName = gameSave.playerName
             theme = gameSave.selectedTheme
@@ -136,7 +246,6 @@ class ChatViewModel : ViewModel() {
             strength = gameSave.strength
             defense = gameSave.defense
             speed = gameSave.speed
-
 
             Log.d(
                 "ChatViewModel",
@@ -149,11 +258,9 @@ class ChatViewModel : ViewModel() {
         })
     }
 
-
     fun resetLoadedGameFlag() {
         _isLoadedGame.value = false
     }
-
 
     fun sendMessage(question: String) {
         viewModelScope.launch {
@@ -162,7 +269,6 @@ class ChatViewModel : ViewModel() {
 
                 messageList.add(MessageModel(question, "user"))
                 messageList.add(MessageModel("Typing...", "model"))
-
 
                 val gameMasterPrompt = Constants.getGameMasterPrompt(_hp.value)
 
@@ -183,6 +289,9 @@ class ChatViewModel : ViewModel() {
 
                 updateHpFromMessage(modelResponse)
 
+
+                saveCurrentGameSession()
+
             } catch (e: Exception) {
                 messageList.removeLast()
                 messageList.add(MessageModel("Error: ${e.message}", "model"))
@@ -190,7 +299,6 @@ class ChatViewModel : ViewModel() {
             }
         }
     }
-
 
     fun startNewGame(
         name: String,
@@ -201,7 +309,6 @@ class ChatViewModel : ViewModel() {
         speed: Int,
         specialItem: String = ""
     ) {
-
         this.playerName = name
         this.theme = setting
         this.characterName = charName
@@ -210,18 +317,29 @@ class ChatViewModel : ViewModel() {
         this.speed = speed
         this.specialItem = specialItem
 
-
         messageList.clear()
         _hp.value = 100
+        _isSessionLoaded.value = true
 
         val isFromCreateStory = specialItem.isNotBlank()
 
         val initialMessage = if (isFromCreateStory) {
-            "Welcome to your custom adventure! " + "Your story is set in: $setting. " + "You are playing as: $name. " + "Your adventure includes side characters: $charName. " + "You possess a special item: $specialItem. " + "Your stats are: strength: $strength, defense: $defense, speed: $speed. Let's begin your tale!"
+            "Welcome to your custom adventure! " +
+                    "Your story is set in: $setting. " +
+                    "You are playing as: $name. " +
+                    "Your adventure includes side characters: $charName. " +
+                    "You possess a special item: $specialItem. " +
+                    "Your stats are: strength: $strength, defense: $defense, speed: $speed. Let's begin your tale!"
         } else {
-            "Welcome! Your name is $name. " + "You have entered the $setting setting and you are a $charName. " + "You have $strength strength, $defense defense, and $speed speed."
+            "Welcome! Your name is $name. " +
+                    "You have entered the $setting setting and you are a $charName. " +
+                    "You have $strength strength, $defense defense, and $speed speed."
         }
-        sendMessage(initialMessage)
-    }
 
+        sendMessage(initialMessage)
+        viewModelScope.launch {
+            kotlinx.coroutines.delay(1000)
+            saveCurrentGameSession()
+        }
+    }
 }
