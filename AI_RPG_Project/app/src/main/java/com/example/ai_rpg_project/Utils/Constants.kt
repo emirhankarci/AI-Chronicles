@@ -2,7 +2,7 @@ package com.example.ai_rpg_project.Utils
 
 object Constants {
 
-    val apiKey = "AIzaSyBm8K7HONFsaS494ciqIaoH9g3a8TFhdsU"
+    val apiKey = "your_gemini_api"
 
     fun getGameMasterPrompt(playerHp: Int): String {
         return """
